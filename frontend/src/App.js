@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { login, register, getTasks, createTask, deleteTask } from "./api";
+import "./App.css"; // Ensure styles are applied
 
 function App() {
     const [token, setToken] = useState(localStorage.getItem("token") || "");
@@ -7,7 +8,7 @@ function App() {
     const [newTask, setNewTask] = useState({ title: "", description: "" });
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const [isRegistering, setIsRegistering] = useState(false); // ✅ Toggle between Login/Register
+    const [isRegistering, setIsRegistering] = useState(false);
 
     useEffect(() => {
         if (token) {
@@ -17,12 +18,17 @@ function App() {
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        const res = await login(username, password);
-        if (res.access_token) {
-            setToken(res.access_token);
-            localStorage.setItem("token", res.access_token);
-        } else {
-            alert("Login failed. Check credentials.");
+        try {
+            const res = await login(username, password);
+            if (res.access_token) {
+                setToken(res.access_token);
+                localStorage.setItem("token", res.access_token);
+            } else {
+                alert("Invalid login. Please try again.");
+            }
+        } catch (error) {
+            console.error("Login Error:", error);
+            alert("Login failed. Check your credentials.");
         }
     };
 
@@ -31,10 +37,42 @@ function App() {
         try {
             await register(username, password);
             alert("Registration successful. You can now log in.");
-            setIsRegistering(false); // ✅ Switch to login mode after registering
+            setIsRegistering(false);
         } catch (error) {
             alert("Registration failed. Try a different username.");
         }
+    };
+
+    const handleCreateTask = async () => {
+        if (!newTask.title.trim()) {
+            alert("Task title cannot be empty");
+            return;
+        }
+        try {
+            await createTask(token, newTask);
+            const updatedTasks = await getTasks(token);
+            setTasks(updatedTasks);
+            setNewTask({ title: "", description: "" });
+        } catch (error) {
+            console.error("❌ Error creating task:", error);
+            alert("Failed to create task.");
+        }
+    };
+
+    const handleDeleteTask = async (taskId) => {
+        try {
+            await deleteTask(token, taskId);
+            const updatedTasks = await getTasks(token);
+            setTasks(updatedTasks);
+        } catch (error) {
+            console.error("❌ Error deleting task:", error);
+            alert("Failed to delete task.");
+        }
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        setToken("");
     };
 
     return (
@@ -65,18 +103,17 @@ function App() {
                 </div>
             ) : (
                 <div>
-                    <h2>Tasks</h2>
-                    <button onClick={() => {
-                        localStorage.removeItem("token");
-                        setToken("");
-                    }}>
-                        Logout
-                    </button>
+                    {/* ✅ New Header for Logout Button */}
+                    <div className="header">
+                        <h2>Tasks</h2>
+                        <button className="logout" onClick={handleLogout}>Logout</button>
+                    </div>
+
                     <ul>
                         {tasks.map(task => (
                             <li key={task.id}>
                                 {task.title} - {task.description}
-                                <button onClick={() => deleteTask(token, task.id).then(() => setTasks(tasks.filter(t => t.id !== task.id)))}>Delete</button>
+                                <button onClick={() => handleDeleteTask(task.id)}>Delete</button>
                             </li>
                         ))}
                     </ul>
@@ -95,7 +132,7 @@ function App() {
                         value={newTask.description}
                         onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
                     />
-                    <button onClick={() => createTask(token, newTask).then(task => setTasks([...tasks, task]))}>Add Task</button>
+                    <button onClick={handleCreateTask}>Add Task</button>
                 </div>
             )}
         </div>
