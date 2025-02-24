@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { login, register, getTasks, createTask, deleteTask } from "./api";
+import { login, register, getTasks, createTask, updateTask, deleteTask } from "./api";
 import "./App.css"; // Ensure styles are applied
 
 function App() {
@@ -54,8 +54,19 @@ function App() {
             setTasks(updatedTasks);
             setNewTask({ title: "", description: "" });
         } catch (error) {
-            console.error("❌ Error creating task:", error);
+            console.error(" Error creating task:", error);
             alert("Failed to create task.");
+        }
+    };
+
+    const handleUpdateTask = async (taskId, updatedData) => {
+        try {
+            await updateTask(token, taskId, updatedData);
+            const updatedTasks = await getTasks(token);
+            setTasks(updatedTasks);
+        } catch (error) {
+            console.error(" Error updating task:", error);
+            alert("Failed to update task.");
         }
     };
 
@@ -111,12 +122,30 @@ function App() {
 
                     <ul>
                         {tasks.map(task => (
-                            <li key={task.id}>
-                                {task.title} - {task.description}
-                                <button onClick={() => handleDeleteTask(task.id)}>Delete</button>
+                            <li key={task.id} className={task.isComplete ? "completed-task" : ""}>
+                                <input
+                                    className="task-input"
+                                    type="text"
+                                    value={task.title}
+                                    onChange={(e) => handleUpdateTask(task.id, { title: e.target.value })}
+                                />
+                                <input
+                                    className="task-input"
+                                    type="text"
+                                    value={task.description}
+                                    onChange={(e) => handleUpdateTask(task.id, { description: e.target.value })}
+                                />
+                                
+                                <div className="task-buttons">
+                                    <button className="complete-btn" onClick={() => handleUpdateTask(task.id, { isComplete: !task.isComplete })}>
+                                        {task.isComplete ? "Undo" : "Complete"}
+                                    </button>
+                                    <button className="delete-btn" onClick={() => handleDeleteTask(task.id)}>Delete</button>
+                                </div>
                             </li>
                         ))}
                     </ul>
+
 
                     <h3>Add New Task</h3>
                     <input
